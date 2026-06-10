@@ -227,17 +227,17 @@ function FloatingNumber({ value, onDone }: { value: number; onDone: () => void }
     <motion.div
       className="absolute pointer-events-none z-[51] whitespace-nowrap"
       style={{ bottom: "calc(100% + 2px)", right: -2 }}
-      initial={{ opacity: 0, y: 0, scale: 0.75 }}
-      animate={{ opacity: [0, 1, 1, 0], y: [0, -18, -38, -52], scale: [0.75, 1.05, 1, 0.9] }}
-      transition={{ duration: 1.7, ease: "easeOut", times: [0, 0.1, 0.68, 1] }}
+      initial={{ opacity: 0, y: 0, scale: 0.8 }}
+      animate={{ opacity: [0, 1, 1, 0], y: [0, -8, -18, -26], scale: [0.8, 0.95, 0.9, 0.85] }}
+      transition={{ duration: 1.6, ease: "easeOut", times: [0, 0.1, 0.65, 1] }}
       onAnimationComplete={onDone}
     >
       <span style={{
         color: "#ffffff",
-        fontSize: 13,
+        fontSize: 10,
         fontWeight: 800,
         letterSpacing: "0.02em",
-        textShadow: "0 0 10px rgba(56,189,248,0.95), 0 0 22px rgba(56,189,248,0.6), 0 1px 3px rgba(0,0,0,0.8)",
+        textShadow: "0 0 7px rgba(56,189,248,0.95), 0 0 14px rgba(56,189,248,0.5), 0 1px 2px rgba(0,0,0,0.9)",
       }}>
         +{value} TRND
       </span>
