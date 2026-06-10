@@ -226,9 +226,9 @@ function FloatingNumber({ value, onDone }: { value: number; onDone: () => void }
   return (
     <motion.div
       className="absolute pointer-events-none z-[51] whitespace-nowrap"
-      style={{ bottom: "calc(100% + 2px)", right: -2 }}
+      style={{ bottom: 4, right: -2 }}
       initial={{ opacity: 0, y: 0, scale: 0.8 }}
-      animate={{ opacity: [0, 1, 1, 0], y: [0, -4, -7, -9], scale: [0.8, 0.95, 0.9, 0.85] }}
+      animate={{ opacity: [0, 1, 1, 0], y: [0, -18, -34, -42], scale: [0.8, 0.95, 0.9, 0.85] }}
       transition={{ duration: 1.6, ease: "easeOut", times: [0, 0.1, 0.65, 1] }}
       onAnimationComplete={onDone}
     >
