@@ -344,6 +344,7 @@ export default function ReelsFeed() {
   const startY = useRef<number | null>(null);
   const dragYRef = useRef(0);
   const videoToggleRef = useRef<(() => void) | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const goNext = useCallback(() => {
     if (currentIndex < REELS.length - 1) {
@@ -358,6 +359,34 @@ export default function ReelsFeed() {
       setCurrentIndex((i) => i - 1);
     }
   }, [currentIndex]);
+
+  // Two-finger trackpad swipe (Mac) — wheel events, must be non-passive to preventDefault
+  const wheelAccum = useRef(0);
+  const wheelCooldown = useRef(false);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (wheelCooldown.current) return;
+      wheelAccum.current += e.deltaY;
+      if (wheelAccum.current > 60) {
+        wheelAccum.current = 0;
+        wheelCooldown.current = true;
+        setTimeout(() => { wheelCooldown.current = false; }, 600);
+        setDirection("up");
+        setCurrentIndex((i) => Math.min(i + 1, REELS.length - 1));
+      } else if (wheelAccum.current < -60) {
+        wheelAccum.current = 0;
+        wheelCooldown.current = true;
+        setTimeout(() => { wheelCooldown.current = false; }, 600);
+        setDirection("down");
+        setCurrentIndex((i) => Math.max(i - 1, 0));
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   // Unified gesture start
   const gestureStart = useCallback((clientY: number) => {
@@ -446,6 +475,7 @@ export default function ReelsFeed() {
 
   return (
     <div
+      ref={containerRef}
       className="relative w-full h-full overflow-hidden bg-black select-none"
       style={{ touchAction: "none" }}
     >
