@@ -78,6 +78,7 @@ const REELS: Reel[] = [
 ];
 
 const SWIPE_THRESHOLD = 80;
+const TAP_THRESHOLD = 8;
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
@@ -174,15 +175,33 @@ function VideoReel({
   reel,
   isActive,
   isMuted,
+  toggleRef,
 }: {
   reel: Reel;
   isActive: boolean;
   isMuted: boolean;
+  toggleRef: React.MutableRefObject<(() => void) | null>;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const togglePlay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  }, []);
+
+  // Keep toggleRef up to date so parent can call it on tap
+  useEffect(() => {
+    toggleRef.current = togglePlay;
+  }, [togglePlay, toggleRef]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -190,8 +209,16 @@ function VideoReel({
 
     if (isActive) {
       video.currentTime = 0;
+      // Always start muted to satisfy autoplay policy, then unmute if needed
+      video.muted = true;
       const tryPlay = () => {
-        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        video.play()
+          .then(() => {
+            setIsPlaying(true);
+            // Restore desired mute state after autoplay succeeds
+            video.muted = isMuted;
+          })
+          .catch(() => setIsPlaying(false));
       };
       if (video.readyState >= 3) {
         tryPlay();
@@ -228,44 +255,23 @@ function VideoReel({
     };
   }, []);
 
-  const togglePlay = (e: React.PointerEvent) => {
-    e.stopPropagation();
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.play();
-      setIsPlaying(true);
-    } else {
-      video.pause();
-      setIsPlaying(false);
-    }
-  };
-
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 
   return (
     <>
-      {/* Video element */}
       <video
         ref={videoRef}
         src={reel.videoUrl}
         className="absolute inset-0 w-full h-full object-cover"
         loop
-        muted={isMuted}
+        muted
         playsInline
         preload="auto"
       />
-      {/* Gradient overlays */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
 
-      {/* Tap to play/pause (center area) */}
-      <div
-        className="absolute inset-0 z-[5]"
-        onPointerDown={togglePlay}
-      />
-
-      {/* Pause indicator */}
+      {/* Pause indicator — no pointer events, parent handles tap */}
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
           <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
@@ -276,9 +282,9 @@ function VideoReel({
         </div>
       )}
 
-      {/* Progress bar row — sits just above the author bar (~80px from bottom + safe area) */}
+      {/* Progress bar */}
       <div
-        className="absolute left-4 right-4 z-10 flex items-center gap-2"
+        className="absolute left-4 right-4 z-10 flex items-center gap-2 pointer-events-none"
         style={{ bottom: "calc(76px + env(safe-area-inset-bottom, 0px))" }}
       >
         <span className="text-white/70 text-xs tabular-nums">{fmt(progress * duration)}</span>
@@ -288,11 +294,11 @@ function VideoReel({
             style={{ width: `${progress * 100}%` }}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <button className="pointer-events-auto p-1" onPointerDown={(e) => { e.stopPropagation(); }}>
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <button className="p-1" onPointerDown={(e) => e.stopPropagation()}>
             <BookmarkIcon />
           </button>
-          <button className="pointer-events-auto p-1" onPointerDown={(e) => { e.stopPropagation(); }}>
+          <button className="p-1" onPointerDown={(e) => e.stopPropagation()}>
             <ExpandIcon />
           </button>
         </div>
@@ -308,8 +314,10 @@ export default function ReelsFeed() {
   const [direction, setDirection] = useState<"up" | "down">("up");
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const startY = useRef<number | null>(null);
+  const startX = useRef<number | null>(null);
+  const videoToggleRef = useRef<(() => void) | null>(null);
 
   const goNext = useCallback(() => {
     if (currentIndex < REELS.length - 1) {
@@ -327,6 +335,7 @@ export default function ReelsFeed() {
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     startY.current = e.clientY;
+    startX.current = e.clientX;
     setIsDragging(true);
     setDragY(0);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -337,15 +346,24 @@ export default function ReelsFeed() {
     setDragY(e.clientY - startY.current);
   }, []);
 
-  const onPointerUp = useCallback(() => {
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (startY.current === null) return;
-    const dy = dragY;
+    const dy = e.clientY - startY.current;
+    const dx = e.clientX - (startX.current ?? e.clientX);
     setIsDragging(false);
     setDragY(0);
     startY.current = null;
-    if (dy < -SWIPE_THRESHOLD) goNext();
-    else if (dy > SWIPE_THRESHOLD) goPrev();
-  }, [dragY, goNext, goPrev]);
+    startX.current = null;
+
+    const isTap = Math.abs(dy) < TAP_THRESHOLD && Math.abs(dx) < TAP_THRESHOLD;
+    if (isTap) {
+      videoToggleRef.current?.();
+    } else if (dy < -SWIPE_THRESHOLD) {
+      goNext();
+    } else if (dy > SWIPE_THRESHOLD) {
+      goPrev();
+    }
+  }, [goNext, goPrev]);
 
   const toggleLike = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -386,10 +404,14 @@ export default function ReelsFeed() {
           className="absolute inset-0 flex flex-col"
           style={{ y: isDragging ? dragY * 0.3 : 0 }}
         >
-          {/* Video + overlays */}
-          <VideoReel reel={reel} isActive={true} isMuted={isMuted} />
+          <VideoReel
+            reel={reel}
+            isActive={true}
+            isMuted={isMuted}
+            toggleRef={videoToggleRef}
+          />
 
-          {/* Top bar — z-10 above the tap-layer z-5 */}
+          {/* Top bar */}
           <div
             className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pb-2"
             style={{ paddingTop: "calc(12px + env(safe-area-inset-top, 0px))" }}
@@ -402,7 +424,6 @@ export default function ReelsFeed() {
               <span className="text-white text-sm font-medium">Закрыть</span>
             </button>
             <div className="flex items-center gap-3">
-              {/* Mute toggle */}
               <button
                 className="bg-black/20 backdrop-blur-sm rounded-full p-2"
                 onPointerDown={(e) => e.stopPropagation()}
