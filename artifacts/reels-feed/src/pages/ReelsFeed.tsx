@@ -209,58 +209,146 @@ function TrndLogoFill({ progress }: { progress: number }) {
   );
 }
 
-function CoinParticleItem({ value, offsetX, onDone }: { value: number; offsetX: number; onDone: () => void }) {
+const BADGE_INNER = (value: number, size = 12) => (
+  <div className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5" style={{
+    background: "rgba(0,0,0,0.68)",
+    border: "1.5px solid rgba(56,189,248,0.8)",
+    backdropFilter: "blur(8px)",
+    boxShadow: "0 0 12px rgba(56,189,248,0.3)",
+    whiteSpace: "nowrap",
+  }}>
+    <img src="/logo_trends.png" width={size} height={size}
+      style={{ filter: "brightness(0.85) sepia(1) hue-rotate(175deg) saturate(18)", objectFit: "contain" }} alt="" />
+    <span style={{ color: "#38bdf8", fontSize: size === 12 ? 11 : 13, fontWeight: 800, letterSpacing: "0.03em" }}>
+      +{value}TRND
+    </span>
+  </div>
+);
+
+// ── Mode 1: Пульс + выстрел ──────────────────────────────────────────────────
+function Mode1Anim({ value, onDone }: { value: number; onDone: () => void }) {
   return (
-    <motion.div
-      className="absolute pointer-events-none flex items-center gap-1 z-50"
-      style={{ bottom: 0, right: offsetX }}
-      initial={{ opacity: 0, y: 0, scale: 0.6 }}
-      animate={{ opacity: [0, 1, 1, 0], y: -90, scale: [0.6, 1.1, 1, 0.85] }}
-      transition={{ duration: 1.4, ease: "easeOut", times: [0, 0.15, 0.7, 1] }}
-      onAnimationComplete={onDone}
-    >
-      <div
-        className="flex items-center gap-1 rounded-full px-2 py-0.5"
-        style={{
-          background: "rgba(0,0,0,0.55)",
-          border: "1px solid rgba(56,189,248,0.6)",
-          backdropFilter: "blur(6px)",
-        }}
+    <>
+      <motion.div
+        className="absolute inset-0 pointer-events-none z-[52]"
+        style={{ borderRadius: "50%", border: "2px solid rgba(56,189,248,0.95)" }}
+        initial={{ scale: 0.8, opacity: 0.95 }}
+        animate={{ scale: 3.8, opacity: 0 }}
+        transition={{ duration: 0.55, ease: "easeOut" }}
+      />
+      <motion.div
+        className="absolute pointer-events-none z-[51]"
+        style={{ top: "50%", right: "100%", marginTop: -14 }}
+        initial={{ x: 0, opacity: 0, scale: 0.35 }}
+        animate={{ x: -52, opacity: [0, 1, 1, 0], scale: [0.35, 1.2, 1.05, 0.9] }}
+        transition={{ duration: 1.55, ease: [0.34, 1.56, 0.64, 1], times: [0, 0.12, 0.6, 1] }}
+        onAnimationComplete={onDone}
       >
-        <img src="/logo_trends.png" width={12} height={12} style={{ filter: "brightness(0.85) sepia(1) hue-rotate(175deg) saturate(18)", objectFit: "contain" }} alt="" />
-        <span style={{ color: "#38bdf8", fontSize: 11, fontWeight: 700, letterSpacing: "0.03em" }}>
-          +{value}TRND
-        </span>
-      </div>
-    </motion.div>
+        {BADGE_INNER(value)}
+      </motion.div>
+    </>
   );
 }
 
-function SwipeEarnParticle({ amount, onDone }: { amount: number; onDone: () => void }) {
+// ── Mode 2: Стек-лента ───────────────────────────────────────────────────────
+function Mode2Anim({ coins, onRemove }: { coins: CoinParticle[]; onRemove: (id: number) => void }) {
+  const visible = coins.slice(-3);
   return (
-    <motion.div
-      className="absolute pointer-events-none flex items-center gap-1 z-50"
-      style={{ bottom: 0, right: -8 }}
-      initial={{ opacity: 0, y: 0, scale: 0.5 }}
-      animate={{ opacity: [0, 1, 1, 0], y: -110, scale: [0.5, 1.2, 1.1, 0.9] }}
-      transition={{ duration: 1.6, ease: "easeOut", times: [0, 0.12, 0.65, 1] }}
-      onAnimationComplete={onDone}
+    <>
+      {visible.map((coin, idx) => (
+        <motion.div
+          key={coin.id}
+          className="absolute pointer-events-none z-[51]"
+          style={{ bottom: "calc(100% + 6px)", right: 0 }}
+          initial={{ opacity: 0, y: 10, scale: 0.8 }}
+          animate={{ opacity: 1, y: -(idx * 30), scale: 1 }}
+          exit={{ opacity: 0, scale: 0.75, transition: { duration: 0.25 } }}
+          transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+          onAnimationComplete={() => {
+            if (idx === 0) setTimeout(() => onRemove(coin.id), 2000);
+          }}
+        >
+          {BADGE_INNER(coin.value)}
+        </motion.div>
+      ))}
+    </>
+  );
+}
+
+// ── Mode 3: Счётчик-спин ─────────────────────────────────────────────────────
+function Mode3Counter({ total }: { total: number }) {
+  if (total === 0) return null;
+  return (
+    <div
+      className="absolute pointer-events-none z-[51]"
+      style={{ top: "50%", right: "calc(100% + 6px)", marginTop: -12 }}
     >
-      <div
-        className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
-        style={{
-          background: "rgba(0,0,0,0.6)",
-          border: "1.5px solid rgba(56,189,248,0.75)",
-          backdropFilter: "blur(8px)",
-          boxShadow: "0 0 14px rgba(56,189,248,0.3)",
-        }}
-      >
-        <img src="/logo_trends.png" width={14} height={14} style={{ filter: "brightness(0.85) sepia(1) hue-rotate(175deg) saturate(18)", objectFit: "contain" }} alt="" />
-        <span style={{ color: "#38bdf8", fontSize: 13, fontWeight: 800, letterSpacing: "0.03em" }}>
-          +{amount} TRND
-        </span>
+      <div className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5" style={{
+        background: "rgba(0,0,0,0.68)",
+        border: "1.5px solid rgba(56,189,248,0.8)",
+        backdropFilter: "blur(8px)",
+        boxShadow: "0 0 12px rgba(56,189,248,0.3)",
+        overflow: "hidden",
+      }}>
+        <img src="/logo_trends.png" width={12} height={12}
+          style={{ filter: "brightness(0.85) sepia(1) hue-rotate(175deg) saturate(18)", objectFit: "contain" }} alt="" />
+        <div style={{ height: 16, overflow: "hidden", position: "relative", minWidth: 52 }}>
+          <AnimatePresence mode="popLayout">
+            <motion.span
+              key={total}
+              style={{ color: "#38bdf8", fontSize: 11, fontWeight: 800, letterSpacing: "0.03em", display: "block", position: "absolute", whiteSpace: "nowrap" }}
+              initial={{ y: -16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 16, opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              {total} TRND
+            </motion.span>
+          </AnimatePresence>
+        </div>
       </div>
-    </motion.div>
+    </div>
+  );
+}
+
+// ── Mode 4: Частицы-искры ────────────────────────────────────────────────────
+function Mode4Anim({ value, onDone }: { value: number; onDone: () => void }) {
+  const sparks = Array.from({ length: 10 }, (_, i) => {
+    const angle = (i / 10) * 360 + Math.random() * 18;
+    const dist = 28 + Math.random() * 16;
+    const rad = (angle * Math.PI) / 180;
+    return { dx: Math.cos(rad) * dist, dy: Math.sin(rad) * dist };
+  });
+  return (
+    <>
+      {sparks.map((s, i) => (
+        <motion.div
+          key={i}
+          className="absolute pointer-events-none rounded-full z-[52]"
+          style={{
+            width: 4 + Math.random() * 3,
+            height: 4 + Math.random() * 3,
+            background: i % 3 === 0 ? "#7dd3fc" : "#38bdf8",
+            top: "50%", left: "50%",
+            marginTop: -2, marginLeft: -2,
+            boxShadow: "0 0 4px #38bdf8",
+          }}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+          animate={{ x: s.dx, y: s.dy, opacity: 0, scale: 0.2 }}
+          transition={{ duration: 0.5 + Math.random() * 0.25, ease: "easeOut", delay: i * 0.015 }}
+        />
+      ))}
+      <motion.div
+        className="absolute pointer-events-none z-[51]"
+        style={{ bottom: "calc(100% + 4px)", right: -6 }}
+        initial={{ opacity: 0, y: 8, scale: 0.65 }}
+        animate={{ opacity: [0, 1, 1, 0], y: [8, -18, -36, -52], scale: [0.65, 1.1, 1, 0.85] }}
+        transition={{ duration: 1.6, ease: "easeOut", times: [0, 0.1, 0.65, 1] }}
+        onAnimationComplete={onDone}
+      >
+        {BADGE_INNER(value, 13)}
+      </motion.div>
+    </>
   );
 }
 
@@ -445,12 +533,17 @@ export default function ReelsFeed() {
   const coinIdRef = useRef(0);
   const spawnedTimesRef = useRef<Set<number>>(new Set());
   const [earnAnim, setEarnAnim] = useState<{ id: number; amount: number } | null>(null);
+  const [animMode, setAnimMode] = useState<1 | 2 | 3 | 4>(1);
+  const [totalEarned, setTotalEarned] = useState(0);
+
+  const MODE_LABELS: Record<number, string> = { 1: "🔥", 2: "⚡", 3: "🎰", 4: "✨" };
 
   useEffect(() => {
     watchTimeRef.current = 0;
     setFillProgress(0);
     setIsPlaying(false);
     setCoins([]);
+    setTotalEarned(0);
     spawnedTimesRef.current = new Set();
   }, [currentIndex]);
 
@@ -469,6 +562,7 @@ export default function ReelsFeed() {
           const offsetX = Math.random() * 20 - 10;
           const id = ++coinIdRef.current;
           setCoins((prev) => [...prev, { id, value, offsetX }]);
+          setTotalEarned((n) => n + value);
         }
       });
     }, 100);
@@ -692,25 +786,48 @@ export default function ReelsFeed() {
               <span className="text-white text-xs font-semibold drop-shadow">{reel.shares}</span>
             </button>
 
-            {/* TRND logo with fill + coin particles + swipe earn */}
+            {/* TRND logo with fill + animated earnings */}
             <div className="flex flex-col items-center gap-1 relative" {...stopSwipe}>
+              {/* Mode switcher */}
+              <button
+                className="text-xs mb-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                style={{ fontSize: 14, lineHeight: 1, background: "none", border: "none", cursor: "pointer", color: "white" }}
+                onClick={() => setAnimMode((m) => ((m % 4) + 1) as 1 | 2 | 3 | 4)}
+                onTouchStart={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {MODE_LABELS[animMode]}
+              </button>
+
               <div className="w-11 h-11 flex items-center justify-center relative">
                 <TrndLogoFill progress={fillProgress} />
 
+                {/* Mode 3 counter — always visible when earned > 0 */}
+                {animMode === 3 && <Mode3Counter total={totalEarned} />}
+
                 <AnimatePresence>
-                  {coins.map((coin) => (
-                    <CoinParticleItem
-                      key={coin.id}
-                      value={coin.value}
-                      offsetX={coin.offsetX}
-                      onDone={() => setCoins((prev) => prev.filter((c) => c.id !== coin.id))}
-                    />
-                  ))}
-                  {earnAnim && (
-                    <SwipeEarnParticle
-                      key={earnAnim.id}
-                      amount={earnAnim.amount}
-                      onDone={() => setEarnAnim(null)}
+                  {/* Mode 1 & 4 — individual particles */}
+                  {(animMode === 1 || animMode === 4) && [
+                    ...coins.map((coin) =>
+                      animMode === 1
+                        ? <Mode1Anim key={coin.id} value={coin.value} onDone={() => setCoins((p) => p.filter((c) => c.id !== coin.id))} />
+                        : <Mode4Anim key={coin.id} value={coin.value} onDone={() => setCoins((p) => p.filter((c) => c.id !== coin.id))} />
+                    ),
+                    earnAnim && (animMode === 1
+                      ? <Mode1Anim key={`e${earnAnim.id}`} value={earnAnim.amount} onDone={() => setEarnAnim(null)} />
+                      : <Mode4Anim key={`e${earnAnim.id}`} value={earnAnim.amount} onDone={() => setEarnAnim(null)} />
+                    ),
+                  ]}
+
+                  {/* Mode 2 — stacked feed */}
+                  {animMode === 2 && (
+                    <Mode2Anim
+                      key="stack"
+                      coins={earnAnim ? [...coins, { id: earnAnim.id, value: earnAnim.amount, offsetX: 0 }] : coins}
+                      onRemove={(id) => {
+                        setCoins((p) => p.filter((c) => c.id !== id));
+                        if (earnAnim?.id === id) setEarnAnim(null);
+                      }}
                     />
                   )}
                 </AnimatePresence>
