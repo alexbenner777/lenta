@@ -178,7 +178,19 @@ function TrndLogoFill({ progress, glowKey }: { progress: number; glowKey: number
   const pct = Math.min(Math.max(progress, 0), 1);
   const clipTop = (1 - pct) * 100;
   return (
-    <div className="relative" style={{ width: 28, height: 28 }}>
+    <motion.div
+      key={glowKey}
+      className="relative"
+      style={{ width: 28, height: 28 }}
+      animate={glowKey > 0 ? {
+        filter: [
+          "drop-shadow(0 0 0px rgba(255,240,80,0))",
+          "drop-shadow(0 0 6px rgba(255,240,80,1)) drop-shadow(0 0 3px rgba(255,255,255,0.9))",
+          "drop-shadow(0 0 0px rgba(255,240,80,0))",
+        ],
+      } : { filter: "drop-shadow(0 0 0px rgba(255,240,80,0))" }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+    >
       <img
         src="/logo_trends.png"
         width={28}
@@ -198,27 +210,7 @@ function TrndLogoFill({ progress, glowKey }: { progress: number; glowKey: number
           alt=""
         />
       </div>
-      {/* White-yellow glow flash on coin earned */}
-      <AnimatePresence>
-        {glowKey > 0 && (
-          <motion.div
-            key={glowKey}
-            className="absolute pointer-events-none"
-            style={{ inset: -8, borderRadius: "50%" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.9, 0] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.65, ease: "easeOut" }}
-          >
-            <div style={{
-              width: "100%", height: "100%", borderRadius: "50%",
-              background: "radial-gradient(circle, rgba(255,240,80,0.85) 0%, rgba(255,255,200,0.5) 40%, transparent 72%)",
-              filter: "blur(3px)",
-            }} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
