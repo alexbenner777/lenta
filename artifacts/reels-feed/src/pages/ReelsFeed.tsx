@@ -236,45 +236,30 @@ function CoinParticleItem({ value, offsetX, onDone }: { value: number; offsetX: 
   );
 }
 
-function SwipeEarnAnim({ amount, onDone }: { amount: number; onDone: () => void }) {
+function SwipeEarnParticle({ amount, onDone }: { amount: number; onDone: () => void }) {
   return (
     <motion.div
-      className="absolute inset-0 flex items-center justify-center pointer-events-none z-[60]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 1, 1, 0] }}
-      transition={{ duration: 1.8, times: [0, 0.1, 0.7, 1] }}
+      className="absolute pointer-events-none flex items-center gap-1 z-50"
+      style={{ bottom: 0, right: -8 }}
+      initial={{ opacity: 0, y: 0, scale: 0.5 }}
+      animate={{ opacity: [0, 1, 1, 0], y: -110, scale: [0.5, 1.2, 1.1, 0.9] }}
+      transition={{ duration: 1.6, ease: "easeOut", times: [0, 0.12, 0.65, 1] }}
       onAnimationComplete={onDone}
     >
-      <motion.div
-        className="flex flex-col items-center gap-2"
-        initial={{ scale: 0.4, y: 30 }}
-        animate={{ scale: [0.4, 1.15, 1], y: [30, -10, 0] }}
-        transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
+      <div
+        className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
+        style={{
+          background: "rgba(0,0,0,0.6)",
+          border: "1.5px solid rgba(56,189,248,0.75)",
+          backdropFilter: "blur(8px)",
+          boxShadow: "0 0 14px rgba(56,189,248,0.3)",
+        }}
       >
-        <div
-          className="flex items-center gap-3 rounded-2xl px-6 py-3"
-          style={{
-            background: "rgba(0,0,0,0.72)",
-            border: "1.5px solid rgba(56,189,248,0.7)",
-            backdropFilter: "blur(12px)",
-            boxShadow: "0 0 32px rgba(56,189,248,0.35), 0 0 8px rgba(56,189,248,0.2)",
-          }}
-        >
-          <img
-            src="/logo_trends.png"
-            width={32}
-            height={32}
-            style={{ filter: "brightness(0.9) sepia(1) hue-rotate(175deg) saturate(18) contrast(1.3)", objectFit: "contain" }}
-            alt=""
-          />
-          <div className="flex flex-col">
-            <span style={{ color: "#38bdf8", fontSize: 22, fontWeight: 800, letterSpacing: "0.04em", lineHeight: 1 }}>
-              +{amount} TRND
-            </span>
-            <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 }}>начислено за просмотр</span>
-          </div>
-        </div>
-      </motion.div>
+        <img src="/logo_trends.png" width={14} height={14} style={{ filter: "brightness(0.85) sepia(1) hue-rotate(175deg) saturate(18)", objectFit: "contain" }} alt="" />
+        <span style={{ color: "#38bdf8", fontSize: 13, fontWeight: 800, letterSpacing: "0.03em" }}>
+          +{amount} TRND
+        </span>
+      </div>
     </motion.div>
   );
 }
@@ -707,12 +692,11 @@ export default function ReelsFeed() {
               <span className="text-white text-xs font-semibold drop-shadow">{reel.shares}</span>
             </button>
 
-            {/* TRND logo with fill + coin particles */}
+            {/* TRND logo with fill + coin particles + swipe earn */}
             <div className="flex flex-col items-center gap-1 relative" {...stopSwipe}>
               <div className="w-11 h-11 flex items-center justify-center relative">
                 <TrndLogoFill progress={fillProgress} />
 
-                {/* Coin particles fly up from this spot */}
                 <AnimatePresence>
                   {coins.map((coin) => (
                     <CoinParticleItem
@@ -722,6 +706,13 @@ export default function ReelsFeed() {
                       onDone={() => setCoins((prev) => prev.filter((c) => c.id !== coin.id))}
                     />
                   ))}
+                  {earnAnim && (
+                    <SwipeEarnParticle
+                      key={earnAnim.id}
+                      amount={earnAnim.amount}
+                      onDone={() => setEarnAnim(null)}
+                    />
+                  )}
                 </AnimatePresence>
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.reposts}</span>
@@ -783,16 +774,6 @@ export default function ReelsFeed() {
             </div>
           </div>
 
-          {/* Swipe earn animation */}
-          <AnimatePresence>
-            {earnAnim && (
-              <SwipeEarnAnim
-                key={earnAnim.id}
-                amount={earnAnim.amount}
-                onDone={() => setEarnAnim(null)}
-              />
-            )}
-          </AnimatePresence>
         </motion.div>
       </AnimatePresence>
 
