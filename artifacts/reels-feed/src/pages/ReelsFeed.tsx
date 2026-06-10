@@ -1,15 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-import img1 from "@assets/IMAGE_2026-06-10_21:45:36_1781117137831.jpg";
-import img2 from "@assets/IMAGE_2026-06-10_21:45:39_1781117140320.jpg";
-import img3 from "@assets/IMAGE_2026-06-10_21:45:42_1781117143222.jpg";
-import img4 from "@assets/IMAGE_2026-06-10_21:45:44_1781117145540.jpg";
-import img5 from "@assets/IMAGE_2026-06-10_21:45:53_1781117154225.jpg";
 
 interface Reel {
   id: number;
-  image: string;
+  videoUrl: string;
   username: string;
   category: string;
   description: string;
@@ -17,74 +11,68 @@ interface Reel {
   comments: number;
   shares: number;
   reposts: number;
-  duration: number;
   avatarColor: string;
 }
 
 const REELS: Reel[] = [
   {
     id: 1,
-    image: img1,
+    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
     username: "Нежный Travel 🌎",
     category: "Путешествия",
-    description: "Новая квартира — первый осмотр",
+    description: "Огонь и природа 🔥",
     likes: 5,
-    comments: 0,
+    comments: 3,
     shares: 0,
     reposts: 75,
-    duration: 17,
     avatarColor: "#e85d4a",
   },
   {
     id: 2,
-    image: img2,
+    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
     username: "Леонардо Дайвинчик",
     category: "Юмор и мемы",
-    description: "Мы?",
+    description: "Мы? 😂",
     likes: 7,
     comments: 0,
     shares: 0,
     reposts: 75,
-    duration: 10,
     avatarColor: "#4a90e8",
   },
   {
     id: 3,
-    image: img3,
+    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
     username: "Александр Зубарев",
     category: "Юмор и мемы",
-    description: "",
+    description: "Веселись по-крупному 🎉",
     likes: 1,
     comments: 0,
     shares: 0,
     reposts: 75,
-    duration: 16,
     avatarColor: "#7c5cbf",
   },
   {
     id: 4,
-    image: img4,
+    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
     username: "Нежный Travel 🌎",
-    category: "Путешествия",
-    description: "Смотрим вместе",
-    likes: 5,
-    comments: 0,
-    shares: 0,
+    category: "Авто",
+    description: "Дорога зовёт 🚗",
+    likes: 12,
+    comments: 4,
+    shares: 2,
     reposts: 75,
-    duration: 17,
     avatarColor: "#e85d4a",
   },
   {
     id: 5,
-    image: img5,
+    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
     username: "magerya",
     category: "Здоровье и медицина",
     description: "Сегодня съёмки на Первом 🎬",
     likes: 7,
-    comments: 0,
+    comments: 1,
     shares: 0,
     reposts: 75,
-    duration: 24,
     avatarColor: "#2ecc71",
   },
 ];
@@ -93,12 +81,11 @@ const SWIPE_THRESHOLD = 80;
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill={filled ? "#fe2c55" : "none"} stroke="white" strokeWidth="1.8">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill={filled ? "#fe2c55" : "none"} stroke={filled ? "#fe2c55" : "white"} strokeWidth="1.8">
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
     </svg>
   );
 }
-
 function CommentIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
@@ -106,7 +93,6 @@ function CommentIcon() {
     </svg>
   );
 }
-
 function ShareIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
@@ -115,7 +101,6 @@ function ShareIcon() {
     </svg>
   );
 }
-
 function BookmarkIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
@@ -123,7 +108,6 @@ function BookmarkIcon() {
     </svg>
   );
 }
-
 function ExpandIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
@@ -134,7 +118,6 @@ function ExpandIcon() {
     </svg>
   );
 }
-
 function MenuIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -144,7 +127,6 @@ function MenuIcon() {
     </svg>
   );
 }
-
 function MoreIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
@@ -152,7 +134,6 @@ function MoreIcon() {
     </svg>
   );
 }
-
 function TelegramIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
@@ -160,7 +141,6 @@ function TelegramIcon() {
     </svg>
   );
 }
-
 function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
@@ -168,12 +148,146 @@ function CloseIcon() {
     </svg>
   );
 }
-
 function ChevronDownIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
       <polyline points="6 9 12 15 18 9"/>
     </svg>
+  );
+}
+function MuteIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+      <path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06A8.99 8.99 0 0 0 17.73 18l1.73 1.73L21 18.46 5.54 3 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+    </svg>
+  );
+}
+function SoundIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+    </svg>
+  );
+}
+
+function VideoReel({
+  reel,
+  isActive,
+  isMuted,
+}: {
+  reel: Reel;
+  isActive: boolean;
+  isMuted: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isActive) {
+      video.currentTime = 0;
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      video.currentTime = 0;
+      setProgress(0);
+      setIsPlaying(false);
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = isMuted;
+  }, [isMuted]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onTimeUpdate = () => {
+      if (video.duration) setProgress(video.currentTime / video.duration);
+    };
+    const onLoadedMetadata = () => setDuration(video.duration);
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
+    return () => {
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+    };
+  }, []);
+
+  const togglePlay = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play();
+      setIsPlaying(true);
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const fmt = (s: number) =>
+    `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+
+  return (
+    <>
+      {/* Video element */}
+      <video
+        ref={videoRef}
+        src={reel.videoUrl}
+        className="absolute inset-0 w-full h-full object-cover"
+        loop
+        muted={isMuted}
+        playsInline
+        preload="auto"
+      />
+      {/* Gradient overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
+
+      {/* Tap to play/pause (center area) */}
+      <div
+        className="absolute inset-0 z-[5]"
+        onPointerDown={togglePlay}
+      />
+
+      {/* Pause indicator */}
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
+          <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Progress bar row */}
+      <div className="absolute bottom-[72px] left-4 right-4 z-10 flex items-center gap-2">
+        <span className="text-white/70 text-xs tabular-nums">{fmt(progress * duration)}</span>
+        <div className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-white rounded-full transition-[width] duration-100"
+            style={{ width: `${progress * 100}%` }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="pointer-events-auto" onPointerDown={(e) => { e.stopPropagation(); }}>
+            <BookmarkIcon />
+          </button>
+          <button className="pointer-events-auto" onPointerDown={(e) => { e.stopPropagation(); }}>
+            <ExpandIcon />
+          </button>
+        </div>
+        <span className="text-white/70 text-xs tabular-nums">{duration ? fmt(duration) : "0:00"}</span>
+      </div>
+    </>
   );
 }
 
@@ -183,8 +297,8 @@ export default function ReelsFeed() {
   const [direction, setDirection] = useState<"up" | "down">("up");
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const startY = useRef<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const goNext = useCallback(() => {
     if (currentIndex < REELS.length - 1) {
@@ -209,8 +323,7 @@ export default function ReelsFeed() {
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (startY.current === null) return;
-    const dy = e.clientY - startY.current;
-    setDragY(dy);
+    setDragY(e.clientY - startY.current);
   }, []);
 
   const onPointerUp = useCallback(() => {
@@ -219,44 +332,30 @@ export default function ReelsFeed() {
     setIsDragging(false);
     setDragY(0);
     startY.current = null;
-
-    if (dy < -SWIPE_THRESHOLD) {
-      goNext();
-    } else if (dy > SWIPE_THRESHOLD) {
-      goPrev();
-    }
+    if (dy < -SWIPE_THRESHOLD) goNext();
+    else if (dy > SWIPE_THRESHOLD) goPrev();
   }, [dragY, goNext, goPrev]);
 
-  const toggleLike = (id: number) => {
+  const toggleLike = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
     setLikedReels((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  const variants = {
+    enter: (dir: "up" | "down") => ({ y: dir === "up" ? "100%" : "-100%", opacity: 0 }),
+    center: { y: 0, opacity: 1 },
+    exit: (dir: "up" | "down") => ({ y: dir === "up" ? "-100%" : "100%", opacity: 0 }),
   };
 
   const reel = REELS[currentIndex];
   const isLiked = likedReels.has(reel.id);
 
-  const variants = {
-    enter: (dir: "up" | "down") => ({
-      y: dir === "up" ? "100%" : "-100%",
-      opacity: 0,
-    }),
-    center: {
-      y: 0,
-      opacity: 1,
-    },
-    exit: (dir: "up" | "down") => ({
-      y: dir === "up" ? "-100%" : "100%",
-      opacity: 0,
-    }),
-  };
-
   return (
     <div
-      ref={containerRef}
       className="relative w-full h-full overflow-hidden bg-black select-none"
       style={{ touchAction: "none" }}
       onPointerDown={onPointerDown}
@@ -274,33 +373,39 @@ export default function ReelsFeed() {
           exit="exit"
           transition={{ type: "spring", stiffness: 380, damping: 38, mass: 0.8 }}
           className="absolute inset-0 flex flex-col"
-          style={{
-            y: isDragging ? dragY * 0.35 : 0,
-          }}
+          style={{ y: isDragging ? dragY * 0.3 : 0 }}
         >
-          {/* Background image fills full screen */}
-          <div className="absolute inset-0">
-            <img
-              src={reel.image}
-              alt={reel.description}
-              className="w-full h-full object-cover"
-              draggable={false}
-            />
-            {/* Gradient overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
-          </div>
+          {/* Video + overlays */}
+          <VideoReel reel={reel} isActive={true} isMuted={isMuted} />
 
-          {/* Top bar */}
-          <div className="relative z-10 flex items-center justify-between px-4 pt-3 pb-2">
-            <button className="flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5">
+          {/* Top bar — z-10 above the tap-layer z-5 */}
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-3 pb-2">
+            <button
+              className="flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <CloseIcon />
               <span className="text-white text-sm font-medium">Закрыть</span>
             </button>
             <div className="flex items-center gap-3">
-              <button className="bg-black/20 backdrop-blur-sm rounded-full p-1.5">
+              {/* Mute toggle */}
+              <button
+                className="bg-black/20 backdrop-blur-sm rounded-full p-2"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => setIsMuted((m) => !m)}
+              >
+                {isMuted ? <MuteIcon /> : <SoundIcon />}
+              </button>
+              <button
+                className="bg-black/20 backdrop-blur-sm rounded-full p-1.5"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <ChevronDownIcon />
               </button>
-              <button className="bg-black/20 backdrop-blur-sm rounded-full p-1.5">
+              <button
+                className="bg-black/20 backdrop-blur-sm rounded-full p-1.5"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <MoreIcon />
               </button>
             </div>
@@ -308,11 +413,10 @@ export default function ReelsFeed() {
 
           {/* Right action buttons */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-4">
-            {/* Like */}
             <button
               className="flex flex-col items-center gap-1"
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => toggleLike(reel.id)}
+              onClick={(e) => toggleLike(e, reel.id)}
             >
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <HeartIcon filled={isLiked} />
@@ -321,55 +425,30 @@ export default function ReelsFeed() {
                 {reel.likes + (isLiked ? 1 : 0)}
               </span>
             </button>
-
-            {/* Comment */}
-            <button
-              className="flex flex-col items-center gap-1"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <CommentIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.comments}</span>
             </button>
-
-            {/* Share */}
-            <button
-              className="flex flex-col items-center gap-1"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <ShareIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.shares}</span>
             </button>
-
-            {/* Telegram reposts */}
-            <button
-              className="flex flex-col items-center gap-1"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <TelegramIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.reposts}</span>
             </button>
-
-            {/* Menu */}
-            <button
-              className="flex flex-col items-center gap-1"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <MenuIcon />
               </div>
             </button>
-
-            {/* Avatar */}
-            <button
-              className="flex flex-col items-center gap-1"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <div
                 className="w-11 h-11 rounded-full border-2 border-white overflow-hidden flex items-center justify-center text-white font-bold text-sm"
                 style={{ background: reel.avatarColor }}
@@ -377,49 +456,21 @@ export default function ReelsFeed() {
                 {reel.username.charAt(0).toUpperCase()}
               </div>
             </button>
-
-            {/* More */}
-            <button
-              className="flex flex-col items-center gap-1"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <div className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <MoreIcon />
               </div>
             </button>
           </div>
 
-          {/* Bottom content */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pb-4">
-            {/* Description */}
-            {reel.description ? (
-              <p className="text-white text-sm font-medium mb-3 drop-shadow max-w-[75%] leading-snug">
+          {/* Bottom author bar */}
+          <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pb-5">
+            {reel.description && (
+              <p className="text-white text-sm font-medium mb-2 drop-shadow max-w-[75%] leading-snug">
                 {reel.description}
               </p>
-            ) : null}
-
-            {/* Progress bar */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-white/70 text-xs tabular-nums">0:00</span>
-              <div className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
-                <div className="h-full w-[2%] bg-white rounded-full" />
-              </div>
-              {/* bookmark + expand for some reels */}
-              <div className="flex items-center gap-2 ml-1">
-                <button onPointerDown={(e) => e.stopPropagation()}>
-                  <BookmarkIcon />
-                </button>
-                <button onPointerDown={(e) => e.stopPropagation()}>
-                  <ExpandIcon />
-                </button>
-              </div>
-              <span className="text-white/70 text-xs tabular-nums">
-                0:{reel.duration.toString().padStart(2, "0")}
-              </span>
-            </div>
-
-            {/* Author row */}
-            <div className="flex items-center justify-between">
+            )}
+            <div className="flex items-center justify-between mt-1">
               <div className="flex items-center gap-2">
                 <div
                   className="w-9 h-9 rounded-full border border-white/60 flex items-center justify-center text-white font-bold text-sm shrink-0"
@@ -428,12 +479,8 @@ export default function ReelsFeed() {
                   {reel.username.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-white text-sm font-semibold leading-tight drop-shadow">
-                    {reel.username}
-                  </p>
-                  <p className="text-white/60 text-xs leading-tight">
-                    Для вас · {reel.category}
-                  </p>
+                  <p className="text-white text-sm font-semibold leading-tight drop-shadow">{reel.username}</p>
+                  <p className="text-white/60 text-xs leading-tight">Для вас · {reel.category}</p>
                 </div>
               </div>
               <button
@@ -451,7 +498,7 @@ export default function ReelsFeed() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Swipe hint dots */}
+      {/* Scroll position dots */}
       <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1 pointer-events-none">
         {REELS.map((_, i) => (
           <div
@@ -466,12 +513,10 @@ export default function ReelsFeed() {
         ))}
       </div>
 
-      {/* Drag resistance indicator */}
+      {/* Drag arrow hint */}
       {isDragging && Math.abs(dragY) > 20 && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          <div className="text-white/30 text-3xl">
-            {dragY < 0 ? "↑" : "↓"}
-          </div>
+          <div className="text-white/30 text-3xl">{dragY < 0 ? "↑" : "↓"}</div>
         </div>
       )}
     </div>
