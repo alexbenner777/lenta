@@ -139,7 +139,7 @@ function MoreIcon() {
 }
 function TelegramIcon() {
   return (
-    <img src="/logo_trends.png" width="34" height="34" style={{objectFit: 'contain'}} alt="logo" />
+    <img src="/logo_trends.png" width="28" height="28" style={{objectFit: 'contain'}} alt="logo" />
   );
 }
 function CloseIcon() {
