@@ -1,0 +1,479 @@
+import { useState, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+import img1 from "@assets/IMAGE_2026-06-10_21:45:36_1781117137831.jpg";
+import img2 from "@assets/IMAGE_2026-06-10_21:45:39_1781117140320.jpg";
+import img3 from "@assets/IMAGE_2026-06-10_21:45:42_1781117143222.jpg";
+import img4 from "@assets/IMAGE_2026-06-10_21:45:44_1781117145540.jpg";
+import img5 from "@assets/IMAGE_2026-06-10_21:45:53_1781117154225.jpg";
+
+interface Reel {
+  id: number;
+  image: string;
+  username: string;
+  category: string;
+  description: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  reposts: number;
+  duration: number;
+  avatarColor: string;
+}
+
+const REELS: Reel[] = [
+  {
+    id: 1,
+    image: img1,
+    username: "Нежный Travel 🌎",
+    category: "Путешествия",
+    description: "Новая квартира — первый осмотр",
+    likes: 5,
+    comments: 0,
+    shares: 0,
+    reposts: 75,
+    duration: 17,
+    avatarColor: "#e85d4a",
+  },
+  {
+    id: 2,
+    image: img2,
+    username: "Леонардо Дайвинчик",
+    category: "Юмор и мемы",
+    description: "Мы?",
+    likes: 7,
+    comments: 0,
+    shares: 0,
+    reposts: 75,
+    duration: 10,
+    avatarColor: "#4a90e8",
+  },
+  {
+    id: 3,
+    image: img3,
+    username: "Александр Зубарев",
+    category: "Юмор и мемы",
+    description: "",
+    likes: 1,
+    comments: 0,
+    shares: 0,
+    reposts: 75,
+    duration: 16,
+    avatarColor: "#7c5cbf",
+  },
+  {
+    id: 4,
+    image: img4,
+    username: "Нежный Travel 🌎",
+    category: "Путешествия",
+    description: "Смотрим вместе",
+    likes: 5,
+    comments: 0,
+    shares: 0,
+    reposts: 75,
+    duration: 17,
+    avatarColor: "#e85d4a",
+  },
+  {
+    id: 5,
+    image: img5,
+    username: "magerya",
+    category: "Здоровье и медицина",
+    description: "Сегодня съёмки на Первом 🎬",
+    likes: 7,
+    comments: 0,
+    shares: 0,
+    reposts: 75,
+    duration: 24,
+    avatarColor: "#2ecc71",
+  },
+];
+
+const SWIPE_THRESHOLD = 80;
+
+function HeartIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill={filled ? "#fe2c55" : "none"} stroke="white" strokeWidth="1.8">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  );
+}
+
+function CommentIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  );
+}
+
+function BookmarkIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
+  );
+}
+
+function ExpandIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+      <polyline points="15 3 21 3 21 9"/>
+      <polyline points="9 21 3 21 3 15"/>
+      <line x1="21" y1="3" x2="14" y2="10"/>
+      <line x1="3" y1="21" x2="10" y2="14"/>
+    </svg>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+      <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+    </svg>
+  );
+}
+
+function TelegramIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/>
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  );
+}
+
+export default function ReelsFeed() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [likedReels, setLikedReels] = useState<Set<number>>(new Set());
+  const [direction, setDirection] = useState<"up" | "down">("up");
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startY = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const goNext = useCallback(() => {
+    if (currentIndex < REELS.length - 1) {
+      setDirection("up");
+      setCurrentIndex((i) => i + 1);
+    }
+  }, [currentIndex]);
+
+  const goPrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setDirection("down");
+      setCurrentIndex((i) => i - 1);
+    }
+  }, [currentIndex]);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    startY.current = e.clientY;
+    setIsDragging(true);
+    setDragY(0);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (startY.current === null) return;
+    const dy = e.clientY - startY.current;
+    setDragY(dy);
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    if (startY.current === null) return;
+    const dy = dragY;
+    setIsDragging(false);
+    setDragY(0);
+    startY.current = null;
+
+    if (dy < -SWIPE_THRESHOLD) {
+      goNext();
+    } else if (dy > SWIPE_THRESHOLD) {
+      goPrev();
+    }
+  }, [dragY, goNext, goPrev]);
+
+  const toggleLike = (id: number) => {
+    setLikedReels((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const reel = REELS[currentIndex];
+  const isLiked = likedReels.has(reel.id);
+
+  const variants = {
+    enter: (dir: "up" | "down") => ({
+      y: dir === "up" ? "100%" : "-100%",
+      opacity: 0,
+    }),
+    center: {
+      y: 0,
+      opacity: 1,
+    },
+    exit: (dir: "up" | "down") => ({
+      y: dir === "up" ? "-100%" : "100%",
+      opacity: 0,
+    }),
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden bg-black select-none"
+      style={{ touchAction: "none" }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      <AnimatePresence custom={direction} initial={false}>
+        <motion.div
+          key={reel.id}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ type: "spring", stiffness: 380, damping: 38, mass: 0.8 }}
+          className="absolute inset-0 flex flex-col"
+          style={{
+            y: isDragging ? dragY * 0.35 : 0,
+          }}
+        >
+          {/* Background image fills full screen */}
+          <div className="absolute inset-0">
+            <img
+              src={reel.image}
+              alt={reel.description}
+              className="w-full h-full object-cover"
+              draggable={false}
+            />
+            {/* Gradient overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+          </div>
+
+          {/* Top bar */}
+          <div className="relative z-10 flex items-center justify-between px-4 pt-3 pb-2">
+            <button className="flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5">
+              <CloseIcon />
+              <span className="text-white text-sm font-medium">Закрыть</span>
+            </button>
+            <div className="flex items-center gap-3">
+              <button className="bg-black/20 backdrop-blur-sm rounded-full p-1.5">
+                <ChevronDownIcon />
+              </button>
+              <button className="bg-black/20 backdrop-blur-sm rounded-full p-1.5">
+                <MoreIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Right action buttons */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-4">
+            {/* Like */}
+            <button
+              className="flex flex-col items-center gap-1"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => toggleLike(reel.id)}
+            >
+              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                <HeartIcon filled={isLiked} />
+              </div>
+              <span className="text-white text-xs font-semibold drop-shadow">
+                {reel.likes + (isLiked ? 1 : 0)}
+              </span>
+            </button>
+
+            {/* Comment */}
+            <button
+              className="flex flex-col items-center gap-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                <CommentIcon />
+              </div>
+              <span className="text-white text-xs font-semibold drop-shadow">{reel.comments}</span>
+            </button>
+
+            {/* Share */}
+            <button
+              className="flex flex-col items-center gap-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                <ShareIcon />
+              </div>
+              <span className="text-white text-xs font-semibold drop-shadow">{reel.shares}</span>
+            </button>
+
+            {/* Telegram reposts */}
+            <button
+              className="flex flex-col items-center gap-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                <TelegramIcon />
+              </div>
+              <span className="text-white text-xs font-semibold drop-shadow">{reel.reposts}</span>
+            </button>
+
+            {/* Menu */}
+            <button
+              className="flex flex-col items-center gap-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                <MenuIcon />
+              </div>
+            </button>
+
+            {/* Avatar */}
+            <button
+              className="flex flex-col items-center gap-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div
+                className="w-11 h-11 rounded-full border-2 border-white overflow-hidden flex items-center justify-center text-white font-bold text-sm"
+                style={{ background: reel.avatarColor }}
+              >
+                {reel.username.charAt(0).toUpperCase()}
+              </div>
+            </button>
+
+            {/* More */}
+            <button
+              className="flex flex-col items-center gap-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                <MoreIcon />
+              </div>
+            </button>
+          </div>
+
+          {/* Bottom content */}
+          <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pb-4">
+            {/* Description */}
+            {reel.description ? (
+              <p className="text-white text-sm font-medium mb-3 drop-shadow max-w-[75%] leading-snug">
+                {reel.description}
+              </p>
+            ) : null}
+
+            {/* Progress bar */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-white/70 text-xs tabular-nums">0:00</span>
+              <div className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
+                <div className="h-full w-[2%] bg-white rounded-full" />
+              </div>
+              {/* bookmark + expand for some reels */}
+              <div className="flex items-center gap-2 ml-1">
+                <button onPointerDown={(e) => e.stopPropagation()}>
+                  <BookmarkIcon />
+                </button>
+                <button onPointerDown={(e) => e.stopPropagation()}>
+                  <ExpandIcon />
+                </button>
+              </div>
+              <span className="text-white/70 text-xs tabular-nums">
+                0:{reel.duration.toString().padStart(2, "0")}
+              </span>
+            </div>
+
+            {/* Author row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-9 h-9 rounded-full border border-white/60 flex items-center justify-center text-white font-bold text-sm shrink-0"
+                  style={{ background: reel.avatarColor }}
+                >
+                  {reel.username.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-white text-sm font-semibold leading-tight drop-shadow">
+                    {reel.username}
+                  </p>
+                  <p className="text-white/60 text-xs leading-tight">
+                    Для вас · {reel.category}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="flex items-center gap-1.5 bg-transparent border border-white/70 text-white text-sm font-medium rounded-full px-4 py-1.5 hover:bg-white/10 transition-colors"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Подписаться
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Swipe hint dots */}
+      <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1 pointer-events-none">
+        {REELS.map((_, i) => (
+          <div
+            key={i}
+            className="rounded-full transition-all duration-300"
+            style={{
+              width: 3,
+              height: i === currentIndex ? 18 : 5,
+              background: i === currentIndex ? "white" : "rgba(255,255,255,0.35)",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Drag resistance indicator */}
+      {isDragging && Math.abs(dragY) > 20 && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
+          <div className="text-white/30 text-3xl">
+            {dragY < 0 ? "↑" : "↓"}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
