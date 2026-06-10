@@ -406,23 +406,20 @@ export default function ReelsFeed() {
     gestureEnd();
   }, [gestureEnd]);
 
-  // Mouse handlers (desktop preview)
-  const isMouseDown = useRef(false);
+  // Mouse handlers (desktop preview) — attach move/up to window so events
+  // are not lost when the cursor leaves the element during a fast drag
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    isMouseDown.current = true;
     gestureStart(e.clientY);
-  }, [gestureStart]);
 
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isMouseDown.current) return;
-    gestureMove(e.clientY);
-  }, [gestureMove]);
-
-  const onMouseUp = useCallback(() => {
-    if (!isMouseDown.current) return;
-    isMouseDown.current = false;
-    gestureEnd();
-  }, [gestureEnd]);
+    const handleMove = (ev: MouseEvent) => gestureMove(ev.clientY);
+    const handleUp = () => {
+      gestureEnd();
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+  }, [gestureStart, gestureMove, gestureEnd]);
 
   const toggleLike = (id: number) => {
     setLikedReels((prev) => {
@@ -451,13 +448,6 @@ export default function ReelsFeed() {
     <div
       className="relative w-full h-full overflow-hidden bg-black select-none"
       style={{ touchAction: "none" }}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
     >
       <AnimatePresence custom={direction} initial={false}>
         <motion.div
@@ -476,6 +466,15 @@ export default function ReelsFeed() {
             isActive={true}
             isMuted={isMuted}
             toggleRef={videoToggleRef}
+          />
+          {/* Gesture-capture overlay: z-3 = above video/gradient, below UI controls at z-10 */}
+          <div
+            className="absolute inset-0 z-[3]"
+            style={{ cursor: isDragging ? "grabbing" : "grab" }}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onMouseDown={onMouseDown}
           />
 
           {/* Top bar */}
