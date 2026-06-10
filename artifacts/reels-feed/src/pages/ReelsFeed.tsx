@@ -183,7 +183,7 @@ function TrndLogoFill({ progress }: { progress: number }) {
         src="/logo_trends.png"
         width={28}
         height={28}
-        style={{ objectFit: "contain", filter: "brightness(0.3) contrast(1.2)", display: "block" }}
+        style={{ objectFit: "contain", filter: "brightness(1)", display: "block" }}
         alt=""
       />
       <div
