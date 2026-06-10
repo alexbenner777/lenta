@@ -342,8 +342,7 @@ export default function ReelsFeed() {
   const [isDragging, setIsDragging] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const startY = useRef<number | null>(null);
-  const startX = useRef<number | null>(null);
-  const dragYRef = useRef(0); // live drag value, not stale state
+  const dragYRef = useRef(0);
   const videoToggleRef = useRef<(() => void) | null>(null);
 
   const goNext = useCallback(() => {
@@ -360,32 +359,32 @@ export default function ReelsFeed() {
     }
   }, [currentIndex]);
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    startY.current = e.clientY;
-    startX.current = e.clientX;
+  // Unified gesture start
+  const gestureStart = useCallback((clientY: number) => {
+    startY.current = clientY;
+    dragYRef.current = 0;
     setIsDragging(true);
     setDragY(0);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
+  // Unified gesture move
+  const gestureMove = useCallback((clientY: number) => {
     if (startY.current === null) return;
-    const dy = e.clientY - startY.current;
+    const dy = clientY - startY.current;
     dragYRef.current = dy;
     setDragY(dy);
   }, []);
 
-  const onPointerUp = useCallback(() => {
+  // Unified gesture end
+  const gestureEnd = useCallback(() => {
     if (startY.current === null) return;
     const dy = dragYRef.current;
+    startY.current = null;
     dragYRef.current = 0;
     setIsDragging(false);
     setDragY(0);
-    startY.current = null;
-    startX.current = null;
 
-    const isTap = Math.abs(dy) < TAP_THRESHOLD;
-    if (isTap) {
+    if (Math.abs(dy) < TAP_THRESHOLD) {
       videoToggleRef.current?.();
     } else if (dy < -SWIPE_THRESHOLD) {
       goNext();
@@ -394,21 +393,49 @@ export default function ReelsFeed() {
     }
   }, [goNext, goPrev]);
 
-  const onPointerCancel = useCallback(() => {
-    startY.current = null;
-    startX.current = null;
-    dragYRef.current = 0;
-    setIsDragging(false);
-    setDragY(0);
-  }, []);
+  // Touch handlers (mobile)
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    gestureStart(e.touches[0].clientY);
+  }, [gestureStart]);
 
-  const toggleLike = (e: React.MouseEvent, id: number) => {
-    e.stopPropagation();
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    gestureMove(e.touches[0].clientY);
+  }, [gestureMove]);
+
+  const onTouchEnd = useCallback(() => {
+    gestureEnd();
+  }, [gestureEnd]);
+
+  // Mouse handlers (desktop preview)
+  const isMouseDown = useRef(false);
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    isMouseDown.current = true;
+    gestureStart(e.clientY);
+  }, [gestureStart]);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isMouseDown.current) return;
+    gestureMove(e.clientY);
+  }, [gestureMove]);
+
+  const onMouseUp = useCallback(() => {
+    if (!isMouseDown.current) return;
+    isMouseDown.current = false;
+    gestureEnd();
+  }, [gestureEnd]);
+
+  const toggleLike = (id: number) => {
     setLikedReels((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  // Stop swipe from firing on interactive elements
+  const stopSwipe = {
+    onTouchStart: (e: React.TouchEvent) => e.stopPropagation(),
+    onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
   };
 
   const variants = {
@@ -424,10 +451,13 @@ export default function ReelsFeed() {
     <div
       className="relative w-full h-full overflow-hidden bg-black select-none"
       style={{ touchAction: "none" }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
     >
       <AnimatePresence custom={direction} initial={false}>
         <motion.div
@@ -453,31 +483,22 @@ export default function ReelsFeed() {
             className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pb-2"
             style={{ paddingTop: "calc(12px + env(safe-area-inset-top, 0px))" }}
           >
-            <button
-              className="flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <button className="flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5" {...stopSwipe}>
               <CloseIcon />
               <span className="text-white text-sm font-medium">Закрыть</span>
             </button>
             <div className="flex items-center gap-3">
               <button
                 className="bg-black/20 backdrop-blur-sm rounded-full p-2"
-                onPointerDown={(e) => e.stopPropagation()}
+                {...stopSwipe}
                 onClick={() => setIsMuted((m) => !m)}
               >
                 {isMuted ? <MuteIcon /> : <SoundIcon />}
               </button>
-              <button
-                className="bg-black/20 backdrop-blur-sm rounded-full p-1.5"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
+              <button className="bg-black/20 backdrop-blur-sm rounded-full p-1.5" {...stopSwipe}>
                 <ChevronDownIcon />
               </button>
-              <button
-                className="bg-black/20 backdrop-blur-sm rounded-full p-1.5"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
+              <button className="bg-black/20 backdrop-blur-sm rounded-full p-1.5" {...stopSwipe}>
                 <MoreIcon />
               </button>
             </div>
@@ -487,8 +508,8 @@ export default function ReelsFeed() {
           <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-4">
             <button
               className="flex flex-col items-center gap-1"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => toggleLike(e, reel.id)}
+              {...stopSwipe}
+              onClick={() => toggleLike(reel.id)}
             >
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <HeartIcon filled={isLiked} />
@@ -497,30 +518,30 @@ export default function ReelsFeed() {
                 {reel.likes + (isLiked ? 1 : 0)}
               </span>
             </button>
-            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+            <button className="flex flex-col items-center gap-1" {...stopSwipe}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <CommentIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.comments}</span>
             </button>
-            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+            <button className="flex flex-col items-center gap-1" {...stopSwipe}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <ShareIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.shares}</span>
             </button>
-            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+            <button className="flex flex-col items-center gap-1" {...stopSwipe}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <TelegramIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.reposts}</span>
             </button>
-            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+            <button className="flex flex-col items-center gap-1" {...stopSwipe}>
               <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <MenuIcon />
               </div>
             </button>
-            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+            <button className="flex flex-col items-center gap-1" {...stopSwipe}>
               <div
                 className="w-11 h-11 rounded-full border-2 border-white overflow-hidden flex items-center justify-center text-white font-bold text-sm"
                 style={{ background: reel.avatarColor }}
@@ -528,7 +549,7 @@ export default function ReelsFeed() {
                 {reel.username.charAt(0).toUpperCase()}
               </div>
             </button>
-            <button className="flex flex-col items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+            <button className="flex flex-col items-center gap-1" {...stopSwipe}>
               <div className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
                 <MoreIcon />
               </div>
@@ -560,7 +581,7 @@ export default function ReelsFeed() {
               </div>
               <button
                 className="flex items-center gap-1.5 bg-transparent border border-white/70 text-white text-sm font-medium rounded-full px-4 py-1.5 hover:bg-white/10 transition-colors"
-                onPointerDown={(e) => e.stopPropagation()}
+                {...stopSwipe}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
                   <line x1="22" y1="2" x2="11" y2="13"/>
