@@ -234,7 +234,7 @@ function FloatingNumber({ value, onDone }: { value: number; onDone: () => void }
     >
       <span style={{
         color: "#ffffff",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 800,
         letterSpacing: "0.02em",
         textShadow: "0 0 7px rgba(56,189,248,0.95), 0 0 14px rgba(56,189,248,0.5), 0 1px 2px rgba(0,0,0,0.9)",
