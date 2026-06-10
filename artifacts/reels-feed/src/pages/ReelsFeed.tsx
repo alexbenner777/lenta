@@ -14,10 +14,12 @@ interface Reel {
   avatarColor: string;
 }
 
+const BASE = import.meta.env.BASE_URL;
+
 const REELS: Reel[] = [
   {
     id: 1,
-    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    videoUrl: `${BASE}videos/v1.mp4`,
     username: "Нежный Travel 🌎",
     category: "Путешествия",
     description: "Огонь и природа 🔥",
@@ -29,7 +31,7 @@ const REELS: Reel[] = [
   },
   {
     id: 2,
-    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    videoUrl: `${BASE}videos/v4.mp4`,
     username: "Леонардо Дайвинчик",
     category: "Юмор и мемы",
     description: "Мы? 😂",
@@ -41,7 +43,7 @@ const REELS: Reel[] = [
   },
   {
     id: 3,
-    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    videoUrl: `${BASE}videos/v5.mp4`,
     username: "Александр Зубарев",
     category: "Юмор и мемы",
     description: "Веселись по-крупному 🎉",
@@ -53,7 +55,7 @@ const REELS: Reel[] = [
   },
   {
     id: 4,
-    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+    videoUrl: `${BASE}videos/v3.mp4`,
     username: "Нежный Travel 🌎",
     category: "Авто",
     description: "Дорога зовёт 🚗",
@@ -65,7 +67,7 @@ const REELS: Reel[] = [
   },
   {
     id: 5,
-    videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    videoUrl: `${BASE}videos/v2.mp4`,
     username: "magerya",
     category: "Здоровье и медицина",
     description: "Сегодня съёмки на Первом 🎬",
@@ -186,6 +188,8 @@ function VideoReel({
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -209,13 +213,15 @@ function VideoReel({
 
     if (isActive) {
       video.currentTime = 0;
+      setIsLoading(true);
+      setHasError(false);
       // Always start muted to satisfy autoplay policy, then unmute if needed
       video.muted = true;
       const tryPlay = () => {
+        setIsLoading(false);
         video.play()
           .then(() => {
             setIsPlaying(true);
-            // Restore desired mute state after autoplay succeeds
             video.muted = isMuted;
           })
           .catch(() => setIsPlaying(false));
@@ -231,6 +237,7 @@ function VideoReel({
       video.currentTime = 0;
       setProgress(0);
       setIsPlaying(false);
+      setIsLoading(true);
     }
   }, [isActive]);
 
@@ -268,11 +275,30 @@ function VideoReel({
         muted
         playsInline
         preload="auto"
+        onError={() => { setHasError(true); setIsLoading(false); }}
+        onLoadedData={() => setIsLoading(false)}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
 
+      {/* Loading spinner */}
+      {isLoading && !hasError && (
+        <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
+          <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+        </div>
+      )}
+
+      {/* Error state */}
+      {hasError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-[6] pointer-events-none gap-2">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" opacity="0.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span className="text-white/50 text-sm">Видео недоступно</span>
+        </div>
+      )}
+
       {/* Pause indicator — no pointer events, parent handles tap */}
-      {!isPlaying && (
+      {!isPlaying && !isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
           <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
@@ -317,6 +343,7 @@ export default function ReelsFeed() {
   const [isMuted, setIsMuted] = useState(true);
   const startY = useRef<number | null>(null);
   const startX = useRef<number | null>(null);
+  const dragYRef = useRef(0); // live drag value, not stale state
   const videoToggleRef = useRef<(() => void) | null>(null);
 
   const goNext = useCallback(() => {
@@ -343,19 +370,21 @@ export default function ReelsFeed() {
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (startY.current === null) return;
-    setDragY(e.clientY - startY.current);
+    const dy = e.clientY - startY.current;
+    dragYRef.current = dy;
+    setDragY(dy);
   }, []);
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  const onPointerUp = useCallback(() => {
     if (startY.current === null) return;
-    const dy = e.clientY - startY.current;
-    const dx = e.clientX - (startX.current ?? e.clientX);
+    const dy = dragYRef.current;
+    dragYRef.current = 0;
     setIsDragging(false);
     setDragY(0);
     startY.current = null;
     startX.current = null;
 
-    const isTap = Math.abs(dy) < TAP_THRESHOLD && Math.abs(dx) < TAP_THRESHOLD;
+    const isTap = Math.abs(dy) < TAP_THRESHOLD;
     if (isTap) {
       videoToggleRef.current?.();
     } else if (dy < -SWIPE_THRESHOLD) {
@@ -364,6 +393,14 @@ export default function ReelsFeed() {
       goPrev();
     }
   }, [goNext, goPrev]);
+
+  const onPointerCancel = useCallback(() => {
+    startY.current = null;
+    startX.current = null;
+    dragYRef.current = 0;
+    setIsDragging(false);
+    setDragY(0);
+  }, []);
 
   const toggleLike = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -390,7 +427,7 @@ export default function ReelsFeed() {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       <AnimatePresence custom={direction} initial={false}>
         <motion.div

@@ -110,6 +110,7 @@ body {
   background: #000;
   border-radius: 20px;
   z-index: 100;
+  pointer-events: none;
 }
 
 /* On real mobile devices: fill the whole screen, no shell */
