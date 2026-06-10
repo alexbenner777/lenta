@@ -190,7 +190,15 @@ function VideoReel({
 
     if (isActive) {
       video.currentTime = 0;
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      const tryPlay = () => {
+        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      };
+      if (video.readyState >= 3) {
+        tryPlay();
+      } else {
+        video.addEventListener("canplay", tryPlay, { once: true });
+        return () => video.removeEventListener("canplay", tryPlay);
+      }
     } else {
       video.pause();
       video.currentTime = 0;
@@ -268,8 +276,11 @@ function VideoReel({
         </div>
       )}
 
-      {/* Progress bar row */}
-      <div className="absolute bottom-[72px] left-4 right-4 z-10 flex items-center gap-2">
+      {/* Progress bar row — sits just above the author bar (~80px from bottom + safe area) */}
+      <div
+        className="absolute left-4 right-4 z-10 flex items-center gap-2"
+        style={{ bottom: "calc(76px + env(safe-area-inset-bottom, 0px))" }}
+      >
         <span className="text-white/70 text-xs tabular-nums">{fmt(progress * duration)}</span>
         <div className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
           <div
@@ -278,10 +289,10 @@ function VideoReel({
           />
         </div>
         <div className="flex items-center gap-2">
-          <button className="pointer-events-auto" onPointerDown={(e) => { e.stopPropagation(); }}>
+          <button className="pointer-events-auto p-1" onPointerDown={(e) => { e.stopPropagation(); }}>
             <BookmarkIcon />
           </button>
-          <button className="pointer-events-auto" onPointerDown={(e) => { e.stopPropagation(); }}>
+          <button className="pointer-events-auto p-1" onPointerDown={(e) => { e.stopPropagation(); }}>
             <ExpandIcon />
           </button>
         </div>
@@ -379,7 +390,10 @@ export default function ReelsFeed() {
           <VideoReel reel={reel} isActive={true} isMuted={isMuted} />
 
           {/* Top bar — z-10 above the tap-layer z-5 */}
-          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-3 pb-2">
+          <div
+            className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pb-2"
+            style={{ paddingTop: "calc(12px + env(safe-area-inset-top, 0px))" }}
+          >
             <button
               className="flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5"
               onPointerDown={(e) => e.stopPropagation()}
@@ -464,7 +478,10 @@ export default function ReelsFeed() {
           </div>
 
           {/* Bottom author bar */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pb-5">
+          <div
+            className="absolute bottom-0 left-0 right-0 z-10 px-4"
+            style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
+          >
             {reel.description && (
               <p className="text-white text-sm font-medium mb-2 drop-shadow max-w-[75%] leading-snug">
                 {reel.description}
