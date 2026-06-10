@@ -1,7 +1,11 @@
 import ReelsFeed from "@/pages/ReelsFeed";
 
 function App() {
-  return <ReelsFeed />;
+  return (
+    <div className="phone-shell">
+      <ReelsFeed />
+    </div>
+  );
 }
 
 export default App;
