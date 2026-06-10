@@ -538,7 +538,7 @@ export default function ReelsFeed() {
               {...stopSwipe}
               onClick={() => toggleLike(reel.id)}
             >
-              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-11 h-11 flex items-center justify-center">
                 <HeartIcon filled={isLiked} />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">
@@ -546,25 +546,25 @@ export default function ReelsFeed() {
               </span>
             </button>
             <button className="flex flex-col items-center gap-1" {...stopSwipe}>
-              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-11 h-11 flex items-center justify-center">
                 <CommentIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.comments}</span>
             </button>
             <button className="flex flex-col items-center gap-1" {...stopSwipe}>
-              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-11 h-11 flex items-center justify-center">
                 <ShareIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.shares}</span>
             </button>
             <button className="flex flex-col items-center gap-1" {...stopSwipe}>
-              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-11 h-11 flex items-center justify-center">
                 <TelegramIcon />
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.reposts}</span>
             </button>
             <button className="flex flex-col items-center gap-1" {...stopSwipe}>
-              <div className="w-11 h-11 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-11 h-11 flex items-center justify-center">
                 <MenuIcon />
               </div>
             </button>
@@ -577,7 +577,7 @@ export default function ReelsFeed() {
               </div>
             </button>
             <button className="flex flex-col items-center gap-1" {...stopSwipe}>
-              <div className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-9 h-9 flex items-center justify-center">
                 <MoreIcon />
               </div>
             </button>
