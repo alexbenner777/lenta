@@ -14,6 +14,12 @@ interface Reel {
   avatarColor: string;
 }
 
+interface CoinParticle {
+  id: number;
+  value: number;
+  offsetX: number;
+}
+
 const BASE = import.meta.env.BASE_URL;
 
 const REELS: Reel[] = [
@@ -81,6 +87,8 @@ const REELS: Reel[] = [
 
 const SWIPE_THRESHOLD = 80;
 const TAP_THRESHOLD = 8;
+const FILL_DURATION = 20; // seconds to fill logo 100%
+const COIN_SCHEDULE = [1, 3, 7, 12, 18]; // seconds at which coins spawn
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
@@ -137,11 +145,6 @@ function MoreIcon() {
     </svg>
   );
 }
-function TelegramIcon() {
-  return (
-    <img src="/logo_trends.png" width="28" height="28" style={{objectFit: 'contain'}} alt="logo" />
-  );
-}
 function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
@@ -171,16 +174,123 @@ function SoundIcon() {
   );
 }
 
+function TrndLogoFill({ progress }: { progress: number }) {
+  const pct = Math.min(Math.max(progress, 0), 1);
+  const clipTop = (1 - pct) * 100;
+  return (
+    <div className="relative" style={{ width: 28, height: 28 }}>
+      <img
+        src="/logo_trends.png"
+        width={28}
+        height={28}
+        style={{ objectFit: "contain", filter: "brightness(0.3) contrast(1.2)", display: "block" }}
+        alt=""
+      />
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          clipPath: `inset(${clipTop}% 0 0 0)`,
+          transition: "clip-path 0.25s linear",
+        }}
+      >
+        <img
+          src="/logo_trends.png"
+          width={28}
+          height={28}
+          style={{
+            objectFit: "contain",
+            filter: "brightness(0.85) sepia(1) hue-rotate(175deg) saturate(18) contrast(1.4)",
+            display: "block",
+          }}
+          alt=""
+        />
+      </div>
+    </div>
+  );
+}
+
+function CoinParticleItem({ value, offsetX, onDone }: { value: number; offsetX: number; onDone: () => void }) {
+  return (
+    <motion.div
+      className="absolute pointer-events-none flex items-center gap-1 z-50"
+      style={{ bottom: 0, right: offsetX }}
+      initial={{ opacity: 0, y: 0, scale: 0.6 }}
+      animate={{ opacity: [0, 1, 1, 0], y: -90, scale: [0.6, 1.1, 1, 0.85] }}
+      transition={{ duration: 1.4, ease: "easeOut", times: [0, 0.15, 0.7, 1] }}
+      onAnimationComplete={onDone}
+    >
+      <div
+        className="flex items-center gap-1 rounded-full px-2 py-0.5"
+        style={{
+          background: "rgba(0,0,0,0.55)",
+          border: "1px solid rgba(56,189,248,0.6)",
+          backdropFilter: "blur(6px)",
+        }}
+      >
+        <img src="/logo_trends.png" width={12} height={12} style={{ filter: "brightness(0.85) sepia(1) hue-rotate(175deg) saturate(18)", objectFit: "contain" }} alt="" />
+        <span style={{ color: "#38bdf8", fontSize: 11, fontWeight: 700, letterSpacing: "0.03em" }}>
+          +{value}TRND
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+function SwipeEarnAnim({ amount, onDone }: { amount: number; onDone: () => void }) {
+  return (
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center pointer-events-none z-[60]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: [0, 1, 1, 0] }}
+      transition={{ duration: 1.8, times: [0, 0.1, 0.7, 1] }}
+      onAnimationComplete={onDone}
+    >
+      <motion.div
+        className="flex flex-col items-center gap-2"
+        initial={{ scale: 0.4, y: 30 }}
+        animate={{ scale: [0.4, 1.15, 1], y: [30, -10, 0] }}
+        transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
+      >
+        <div
+          className="flex items-center gap-3 rounded-2xl px-6 py-3"
+          style={{
+            background: "rgba(0,0,0,0.72)",
+            border: "1.5px solid rgba(56,189,248,0.7)",
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 0 32px rgba(56,189,248,0.35), 0 0 8px rgba(56,189,248,0.2)",
+          }}
+        >
+          <img
+            src="/logo_trends.png"
+            width={32}
+            height={32}
+            style={{ filter: "brightness(0.9) sepia(1) hue-rotate(175deg) saturate(18) contrast(1.3)", objectFit: "contain" }}
+            alt=""
+          />
+          <div className="flex flex-col">
+            <span style={{ color: "#38bdf8", fontSize: 22, fontWeight: 800, letterSpacing: "0.04em", lineHeight: 1 }}>
+              +{amount} TRND
+            </span>
+            <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 }}>начислено за просмотр</span>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function VideoReel({
   reel,
   isActive,
   isMuted,
   toggleRef,
+  onPlayChange,
 }: {
   reel: Reel;
   isActive: boolean;
   isMuted: boolean;
   toggleRef: React.MutableRefObject<(() => void) | null>;
+  onPlayChange?: (playing: boolean) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [progress, setProgress] = useState(0);
@@ -189,18 +299,22 @@ function VideoReel({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
+  const setPlay = useCallback((v: boolean) => {
+    setIsPlaying(v);
+    onPlayChange?.(v);
+  }, [onPlayChange]);
+
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      video.play().then(() => setPlay(true)).catch(() => {});
     } else {
       video.pause();
-      setIsPlaying(false);
+      setPlay(false);
     }
-  }, []);
+  }, [setPlay]);
 
-  // Keep toggleRef up to date so parent can call it on tap
   useEffect(() => {
     toggleRef.current = togglePlay;
   }, [togglePlay, toggleRef]);
@@ -213,16 +327,15 @@ function VideoReel({
       video.currentTime = 0;
       setIsLoading(true);
       setHasError(false);
-      // Always start muted to satisfy autoplay policy, then unmute if needed
       video.muted = true;
       const tryPlay = () => {
         setIsLoading(false);
         video.play()
           .then(() => {
-            setIsPlaying(true);
+            setPlay(true);
             video.muted = isMuted;
           })
-          .catch(() => setIsPlaying(false));
+          .catch(() => setPlay(false));
       };
       if (video.readyState >= 3) {
         tryPlay();
@@ -234,7 +347,7 @@ function VideoReel({
       video.pause();
       video.currentTime = 0;
       setProgress(0);
-      setIsPlaying(false);
+      setPlay(false);
       setIsLoading(true);
     }
   }, [isActive]);
@@ -278,14 +391,12 @@ function VideoReel({
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
 
-      {/* Loading spinner */}
       {isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
           <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-white animate-spin" />
         </div>
       )}
 
-      {/* Error state */}
       {hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-[6] pointer-events-none gap-2">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" opacity="0.5">
@@ -295,7 +406,6 @@ function VideoReel({
         </div>
       )}
 
-      {/* Pause indicator — no pointer events, parent handles tap */}
       {!isPlaying && !isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
           <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
@@ -306,7 +416,6 @@ function VideoReel({
         </div>
       )}
 
-      {/* Progress bar */}
       <div
         className="absolute left-4 right-4 z-10 flex items-center gap-2 pointer-events-none"
         style={{ bottom: "calc(76px + env(safe-area-inset-bottom, 0px))" }}
@@ -344,21 +453,66 @@ export default function ReelsFeed() {
   const videoToggleRef = useRef<(() => void) | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [isPlaying, setIsPlaying] = useState(false);
+  const watchTimeRef = useRef(0);
+  const [fillProgress, setFillProgress] = useState(0);
+  const [coins, setCoins] = useState<CoinParticle[]>([]);
+  const coinIdRef = useRef(0);
+  const spawnedTimesRef = useRef<Set<number>>(new Set());
+  const [earnAnim, setEarnAnim] = useState<{ id: number; amount: number } | null>(null);
+
+  useEffect(() => {
+    watchTimeRef.current = 0;
+    setFillProgress(0);
+    setIsPlaying(false);
+    setCoins([]);
+    spawnedTimesRef.current = new Set();
+  }, [currentIndex]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      watchTimeRef.current += 0.1;
+      const wt = watchTimeRef.current;
+      setFillProgress(Math.min(wt / FILL_DURATION, 1));
+
+      COIN_SCHEDULE.forEach((t) => {
+        if (!spawnedTimesRef.current.has(t) && wt >= t) {
+          spawnedTimesRef.current.add(t);
+          const values = [1, 3, 5];
+          const value = values[Math.floor(Math.random() * values.length)];
+          const offsetX = Math.random() * 20 - 10;
+          const id = ++coinIdRef.current;
+          setCoins((prev) => [...prev, { id, value, offsetX }]);
+        }
+      });
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const triggerEarnIfWatched = useCallback(() => {
+    if (watchTimeRef.current >= 1) {
+      const id = Date.now();
+      setEarnAnim({ id, amount: 1 });
+    }
+  }, []);
+
   const goNext = useCallback(() => {
     if (currentIndex < REELS.length - 1) {
+      triggerEarnIfWatched();
       setDirection("up");
       setCurrentIndex((i) => i + 1);
     }
-  }, [currentIndex]);
+  }, [currentIndex, triggerEarnIfWatched]);
 
   const goPrev = useCallback(() => {
     if (currentIndex > 0) {
+      triggerEarnIfWatched();
       setDirection("down");
       setCurrentIndex((i) => i - 1);
     }
-  }, [currentIndex]);
+  }, [currentIndex, triggerEarnIfWatched]);
 
-  // Two-finger trackpad swipe (Mac) — wheel events, must be non-passive to preventDefault
   const wheelAccum = useRef(0);
   const wheelCooldown = useRef(false);
   useEffect(() => {
@@ -372,21 +526,22 @@ export default function ReelsFeed() {
         wheelAccum.current = 0;
         wheelCooldown.current = true;
         setTimeout(() => { wheelCooldown.current = false; }, 600);
+        triggerEarnIfWatched();
         setDirection("up");
         setCurrentIndex((i) => Math.min(i + 1, REELS.length - 1));
       } else if (wheelAccum.current < -60) {
         wheelAccum.current = 0;
         wheelCooldown.current = true;
         setTimeout(() => { wheelCooldown.current = false; }, 600);
+        triggerEarnIfWatched();
         setDirection("down");
         setCurrentIndex((i) => Math.max(i - 1, 0));
       }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [triggerEarnIfWatched]);
 
-  // Unified gesture start
   const gestureStart = useCallback((clientY: number) => {
     startY.current = clientY;
     dragYRef.current = 0;
@@ -394,7 +549,6 @@ export default function ReelsFeed() {
     setDragY(0);
   }, []);
 
-  // Unified gesture move
   const gestureMove = useCallback((clientY: number) => {
     if (startY.current === null) return;
     const dy = clientY - startY.current;
@@ -402,7 +556,6 @@ export default function ReelsFeed() {
     setDragY(dy);
   }, []);
 
-  // Unified gesture end
   const gestureEnd = useCallback(() => {
     if (startY.current === null) return;
     const dy = dragYRef.current;
@@ -420,7 +573,6 @@ export default function ReelsFeed() {
     }
   }, [goNext, goPrev]);
 
-  // Touch handlers (mobile)
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     gestureStart(e.touches[0].clientY);
   }, [gestureStart]);
@@ -433,11 +585,8 @@ export default function ReelsFeed() {
     gestureEnd();
   }, [gestureEnd]);
 
-  // Mouse handlers (desktop preview) — attach move/up to window so events
-  // are not lost when the cursor leaves the element during a fast drag
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     gestureStart(e.clientY);
-
     const handleMove = (ev: MouseEvent) => gestureMove(ev.clientY);
     const handleUp = () => {
       gestureEnd();
@@ -456,7 +605,6 @@ export default function ReelsFeed() {
     });
   };
 
-  // Stop swipe from firing on interactive elements
   const stopSwipe = {
     onTouchStart: (e: React.TouchEvent) => e.stopPropagation(),
     onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
@@ -494,8 +642,9 @@ export default function ReelsFeed() {
             isActive={true}
             isMuted={isMuted}
             toggleRef={videoToggleRef}
+            onPlayChange={setIsPlaying}
           />
-          {/* Gesture-capture overlay: z-3 = above video/gradient, below UI controls at z-10 */}
+
           <div
             className="absolute inset-0 z-[3]"
             style={{ cursor: isDragging ? "grabbing" : "grab" }}
@@ -557,12 +706,27 @@ export default function ReelsFeed() {
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.shares}</span>
             </button>
-            <button className="flex flex-col items-center gap-1" {...stopSwipe}>
-              <div className="w-11 h-11 flex items-center justify-center">
-                <TelegramIcon />
+
+            {/* TRND logo with fill + coin particles */}
+            <div className="flex flex-col items-center gap-1 relative" {...stopSwipe}>
+              <div className="w-11 h-11 flex items-center justify-center relative">
+                <TrndLogoFill progress={fillProgress} />
+
+                {/* Coin particles fly up from this spot */}
+                <AnimatePresence>
+                  {coins.map((coin) => (
+                    <CoinParticleItem
+                      key={coin.id}
+                      value={coin.value}
+                      offsetX={coin.offsetX}
+                      onDone={() => setCoins((prev) => prev.filter((c) => c.id !== coin.id))}
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
               <span className="text-white text-xs font-semibold drop-shadow">{reel.reposts}</span>
-            </button>
+            </div>
+
             <button className="flex flex-col items-center gap-1" {...stopSwipe}>
               <div className="w-11 h-11 flex items-center justify-center">
                 <MenuIcon />
@@ -618,6 +782,17 @@ export default function ReelsFeed() {
               </button>
             </div>
           </div>
+
+          {/* Swipe earn animation */}
+          <AnimatePresence>
+            {earnAnim && (
+              <SwipeEarnAnim
+                key={earnAnim.id}
+                amount={earnAnim.amount}
+                onDone={() => setEarnAnim(null)}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
       </AnimatePresence>
 
@@ -636,7 +811,6 @@ export default function ReelsFeed() {
         ))}
       </div>
 
-      {/* Drag arrow hint */}
       {isDragging && Math.abs(dragY) > 20 && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
           <div className="text-white/30 text-3xl">{dragY < 0 ? "↑" : "↓"}</div>
